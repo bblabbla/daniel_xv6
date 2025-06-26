@@ -1,7 +1,7 @@
 #include "kernel/types.h"
+#include "kernel/param.h"
 #include "kernel/stat.h"
 #include "user/user.h"
-#include "kernel/param.h"
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -42,6 +42,27 @@ int main(int argc, char *argv[]) {
     }
     if (ch == '\n') {
       if (i > 0) {
+        while (i > 0 && (buf[i - 1] == ' ' || buf[i - 1] == '\t'))
+          i--;
+
+        if (i == 0) {
+          i = 0;
+          continue;
+        }
+
+        int space_found = 0;
+        for (int j = 0; j < i; j++) {
+          if (buf[j] == ' ' || buf[j] == '\t') {
+            space_found = 1;
+            break;
+          }
+        }
+        if (space_found) {
+          fprintf(2, "xargs: input contains multiple arguments, expected one per line\n");
+          i = 0;
+          continue;
+        }
+
         buf[i] = 0;
         if (base + 1 < MAXARG) {
           xargv[base] = buf;

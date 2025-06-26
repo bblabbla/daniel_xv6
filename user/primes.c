@@ -1,6 +1,6 @@
 #include "kernel/types.h"
-#include "user/user.h"
 #include "kernel/stat.h"
+#include "user/user.h"
 
 void print_prime(int n) {
   char buf[16];
@@ -23,51 +23,52 @@ void print_prime(int n) {
   write(1, buf, i);
 }
 
-void recursive_proc(int max, int prime, int talker) {
+void recursive_proc(int prime, int read_fd) {
   print_prime(prime);
-  int is_dad = 0, listener = -1;
+  int is_child_created = 0, next_fd = -1;
   while (1) {
-    int buf[1];
-    if (read(talker, buf, sizeof(int)) <= 0) break;
-    if (buf[0] % prime != 0) {
-      if (!is_dad) {
-        int apipe[2];
-        pipe(apipe);
-        is_dad = 1;
-        listener = apipe[1];
+    int n;
+    if (read(read_fd, &n, sizeof(int)) <= 0)
+      break;
+    if (n % prime != 0) {
+      if (!is_child_created) {
+        int pipe_fd[2];
+        pipe(pipe_fd);
+        is_child_created = 1;
+        next_fd = pipe_fd[1];
         int pid = fork();
         if (pid == 0) {
-          close(talker);
-          close(apipe[1]);
-          recursive_proc(max, buf[0], apipe[0]);
+          close(read_fd);
+          close(pipe_fd[1]);
+          recursive_proc(n, pipe_fd[0]);
           exit(0);
         }
-        close(apipe[0]);
+        close(pipe_fd[0]);
       }
-      write(listener, buf, sizeof(int));
+      write(next_fd, &n, sizeof(int));
     }
   }
-  if (is_dad) {
-    close(listener);
+  if (is_child_created) {
+    close(next_fd);
     wait(0);
   }
-  close(talker);
+  close(read_fd);
   exit(0);
 }
 
 int main() {
-  int first_pipe[2];
-  pipe(first_pipe);
+  int pipe_fd[2];
+  pipe(pipe_fd);
   if (fork() == 0) {
-    close(first_pipe[1]);
-    recursive_proc(35, 2, first_pipe[0]);
+    close(pipe_fd[1]);
+    recursive_proc(2, pipe_fd[0]);
     exit(0);
   }
-  close(first_pipe[0]);
+  close(pipe_fd[0]);
   for (int i = 3; i <= 35; i++) {
-    write(first_pipe[1], &i, sizeof(int));
+    write(pipe_fd[1], &i, sizeof(int));
   }
-  close(first_pipe[1]);
+  close(pipe_fd[1]);
   wait(0);
   printf("OK\n");
   exit(0);
