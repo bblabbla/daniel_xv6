@@ -92,7 +92,6 @@ getfreemem(void)
     count++;
     r = r->next;
   }
-
   release(&kmem.lock);
   return count * PGSIZE;
 }

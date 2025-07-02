@@ -1,0 +1,7 @@
+usertrap()
+0xf meaning user mode meaning exec
+0x22 which means user mode
+lw a3,0
+virtual address is unmap so memory fault
+0x1 so first process
+
